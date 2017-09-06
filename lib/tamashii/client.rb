@@ -1,4 +1,5 @@
 require "tamashii/common"
+require "tamashii/client/version"
 require "tamashii/client/config"
 
 module Tamashii

@@ -9,9 +9,6 @@ require 'websocket/driver'
 require "tamashii/common"
 require "tamashii/client/config"
 
-
-Thread.abort_on_exception = true
-
 module Tamashii
   module Client
     class Base
@@ -41,13 +38,23 @@ module Tamashii
       def close
         @closing = true
         if opened?
-          @driver.close
+          close_driver
         else
           logger.info "Closing: server is not connected, close immediately"
           abort_open_socket_task
           stop
         end
-        wait_for_worker_thread
+        wait_for_worker_thread if worker_running?
+      end
+
+      def close_driver
+        post { @driver.close }
+      end
+
+      def post(task = nil, &block)
+        task ||= block
+        @todo << block
+        wakeup
       end
 
       def abort_open_socket_task
@@ -66,11 +73,15 @@ module Tamashii
         @stopping
       end
 
+      def worker_running?
+        @worker_running
+      end
+
       # called from user
       def transmit(data)
         if opened?
-          data.unpack("C*") if data.is_a?(String)
-          @driver.binary(data)
+          data = data.unpack("C*") if data.is_a?(String)
+          post { @driver.binary(data) }
           true
         else
           logger.error "Server not opened. Cannot transmit data!"
@@ -81,7 +92,7 @@ module Tamashii
       # called from ws driver
       def write(data)
         @write_buffer << data
-        @todo << lambda do
+        post do
           begin
             @monitor&.interests = :rw
           rescue EOFError => e
@@ -89,7 +100,6 @@ module Tamashii
             logger.error "Error when writing: #{e.message}"
           end
         end
-        wakeup
       end
 
       def on(event, callable = nil, &block)
@@ -101,17 +111,22 @@ module Tamashii
         end
       end
 
-      private
+      def kill_worker_thread
+        @thread.exit
+        worker_cleanup(false)
+      end
 
       def wait_for_worker_thread
         if !@thread.join(Config.closing_timeout)
           logger.error "Unable to stop worker thread in #{Config.closing_timeout} second! Force kill the worker thread"
-          @thread.exit
+          kill_worker_thread
         end
       end
 
       def wakeup
         @nio.wakeup
+      rescue
+        logger.error "Select cannot be wakeup"
       end
 
       def open_socket
@@ -134,12 +149,11 @@ module Tamashii
         if @io = open_socket
           logger.info "Socket opened!"
           call_callback(:socket_opened)
-          @todo << lambda do 
+          post do
             @monitor = @nio.register(@io, :r)
             @opened = true
             start_websocket_driver
           end
-          wakeup
         else
           logger.error "Cannot open socket, retry later"
           open_socket_async
@@ -147,7 +161,11 @@ module Tamashii
       end
 
       def open_socket_async
-        @open_socket_task = Concurrent::ScheduledTask.execute(1, &method(:open_socket_runner))
+        if !closing? && !stopped?
+          @open_socket_task = Concurrent::ScheduledTask.execute(Config.opening_retry_interval, &method(:open_socket_runner))
+        else
+          logger.warn "Client is closing, no longer need to create socket"
+        end
       end
 
       def flush_write_buffer
@@ -199,6 +217,8 @@ module Tamashii
       end
 
       def run
+        @worker_running = true
+        logger.info "Worker Create!"
         open_socket_async
         loop do
           if stopped?
@@ -219,6 +239,12 @@ module Tamashii
             end
          end
         end
+        worker_cleanup(true)
+      end
+
+      def worker_cleanup(normally)
+        @worker_running = false
+        logger.debug "Worker terminales #{normally ? 'normally' : 'abnormally'}"
       end
 
       def read
@@ -247,7 +273,6 @@ module Tamashii
           open_socket_async
         end
       end
-
 
       # this is hard stop, will not issue a websocket close message!
       def stop

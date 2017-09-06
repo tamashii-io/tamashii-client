@@ -82,7 +82,7 @@ RSpec.describe Tamashii::Client::Base do
           expect(TCPSocket).to receive(:new).and_return(tcp_socket)
           expect(OpenSSL::SSL::SSLSocket).to receive(:new).with(tcp_socket).and_return(ssl_socket)
           expect(ssl_socket).to receive(:connect).and_return(io)
-          subject.open_socket
+          expect(subject.open_socket).to be io
         end
       end
 
@@ -92,7 +92,29 @@ RSpec.describe Tamashii::Client::Base do
         end
         it "create the socket by called OpenSSL::SSL::SSLSocket" do
           expect(TCPSocket).to receive(:new).and_return(tcp_socket)
-          subject.open_socket
+          expect(subject.open_socket).to be tcp_socket
+        end
+      end
+
+      context "when timeout is reach" do
+        before do
+          allow(Timeout).to receive(:timeout).and_raise(Timeout::Error) 
+        end
+
+        it "returns nil" do
+          expect(subject.open_socket).to be nil
+        end
+      end
+      
+      context "when other error happens in the block" do
+        before do
+          allow(Timeout).to receive(:timeout) do
+            raise RuntimeError, "Error in the block"
+          end
+        end
+
+        it "returns nil" do
+          expect(subject.open_socket).to be nil
         end
       end
     end
@@ -210,6 +232,28 @@ RSpec.describe Tamashii::Client::Base do
       end
     end
 
+    describe "#close_driver" do
+      before do
+        allow(subject).to receive(:post) { |&block| block.call }
+        subject.instance_variable_set(:@driver, driver)
+      end
+      it "call the driver#close" do
+        expect(driver).to receive(:close)
+        subject.close_driver
+      end
+    end
+
+    describe "#abort_open_socket_task" do
+      let(:scheduled_task) { instance_double(Concurrent::ScheduledTask) }
+      before do
+        subject.instance_variable_set(:@open_socket_task, scheduled_task)
+      end
+      it "cancel the scheduled task if exists" do
+        expect(scheduled_task).to receive(:cancel)
+        subject.abort_open_socket_task
+      end
+    end
+
     describe "#start_websocket_driver" do
       it "register open, close, message, error callbacks on driver and starts it" do
         expect(driver).to receive(:start)
@@ -322,11 +366,25 @@ RSpec.describe Tamashii::Client::Base do
 
       context "when data is available" do
         let(:incoming) { SecureRandom.hex }
+
         it "pass it to the driver" do
           expect(driver).to receive(:parse).with(incoming)
           subject.read
         end
+
+        context "when error happens in the driver" do
+          before do
+            allow(driver).to receive(:parse).and_raise RuntimeError
+          end
+          
+          it "calls server gone" do
+          expect(subject).to receive(:server_gone)
+          subject.read
+
+          end
+        end
       end
+
     end
 
     describe "#server_gone" do

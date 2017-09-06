@@ -9,3 +9,7 @@ SimpleCov.start do
 end
 
 require "tamashii/client"
+
+Tamashii::Client.config do
+  log_file Tempfile.new.path
+end

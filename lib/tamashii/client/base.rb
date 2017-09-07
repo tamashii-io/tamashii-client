@@ -20,7 +20,8 @@ module Tamashii
       end
 
       def initialize
-        @url = "#{Config.use_ssl ? "wss" : "ws"}://#{Config.host}:#{Config.port}/#{Config.entry_point}"
+        entry_point_with_slash = Config.entry_point.start_with?("/") ? Config.entry_point : "/#{Config.entry_point}"
+        @url = "#{Config.use_ssl ? "wss" : "ws"}://#{Config.host}:#{Config.port}#{entry_point_with_slash}"
 
         @callbacks = {}
 

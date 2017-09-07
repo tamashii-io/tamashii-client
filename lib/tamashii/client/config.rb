@@ -5,7 +5,7 @@ module Tamashii
       register :log_file, STDOUT
 
       register :use_ssl, false
-      register :entry_point, "/tamashii"
+      register :entry_point, ""
       register :host, "localhost"
       register :port, 3000
       register :opening_timeout, 5

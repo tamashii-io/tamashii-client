@@ -8,9 +8,9 @@ module Tamashii
       register :entry_point, ""
       register :host, "localhost"
       register :port, 3000
-      register :opening_timeout, 5
+      register :opening_timeout, 10
       register :opening_retry_interval, 1
-      register :closing_timeout, 5
+      register :closing_timeout, 10
 
       def log_level(level = nil)
         return Client.logger.level if level.nil?

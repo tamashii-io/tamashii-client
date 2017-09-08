@@ -1,7 +1,7 @@
-Tamashii Client [![Gem Version](https://badge.fury.io/rb/tamashii-client.svg)](https://badge.fury.io/rb/tamashii-client) 
+Tamashii Client [![Gem Version](https://badge.fury.io/rb/tamashii-client.svg)](https://badge.fury.io/rb/tamashii-client)
 ===
 
-Tamashii Client is the client side of the WebSocket framework [Tamashii](https://github.com/tamashii-io/tamashii). It is event-driven and it provides high-level API for users to communicates with WebSocket server easily. 
+Tamashii Client is the websocket client for the  [Tamashii](https://github.com/tamashii-io/tamashii) project. It is event-driven and it provides high-level API for users to communicates with WebSocket server easily.
 
 ## Installation
 
@@ -38,19 +38,20 @@ Tamashii::Client.config do
   # Note the current version client does not infer the port from 'use_ssl'
   # So you must explictly specifiy the port to use
   port 443
-  # the log file for internel connection log 
+  # the log file for internel connection log
   # default is STDOUT
   log_file 'tamashii.log'
 end
 
 client = Tamashii::Client::Base.new
-@server_opened = false 
+@server_opened = false
 
 # callback for server opened
 # called when the WebSocket connection is readt
-client.on(:open) do  
+client.on(:open) do
   @server_opened = true
 end
+
 # callback for receving messages
 # The data received is represented in a byte array
 # You may need to 'pack' it back to Ruby string
@@ -62,19 +63,19 @@ end
 # sending loop
 # We send a request to server every second and terminates after 10 seconds
 # In the begining, the server is not opened so the sending may fail.
-count = 0 
+count = 0
 loop do
   sleep 1
   if @server_opened # can also use 'client.opened?'
     client.transmit "Hello World! #{count}"
   else
     puts "Unable to send #{count}: server not opened"
-  end 
+  end
   count += 1
   if count >= 10
     client.close
     break
-  end 
+  end
 end
 ```
 
@@ -123,9 +124,9 @@ end
 
 ### The events and callbacks
 
-These are events in the Tamashii Client. You can use `on` method to register callbacks for them. 
+These are events in the Tamashii Client. You can use `on` method to register callbacks for them.
 - `socket_opened`
-    - When the low-level io socket (`TCPSocket` or `OpenSSL::SSL::SSLSocket`) successfully connected to the server. 
+    - When the low-level io socket (`TCPSocket` or `OpenSSL::SSL::SSLSocket`) successfully connected to the server.
     - Receving this event does not imply the server supports WebSocket. Client still cannot send messages at this moment
 - `open`
     - When the WebSocket handshake is finished and the connection is opened
@@ -139,18 +140,18 @@ These are events in the Tamashii Client. You can use `on` method to register cal
     - This event is purely informational, you do not need to implement error recovery.
     - The error object will be pass as the argument of the callback.
 - `close`
-    - When the WebSocket is closed **normally**. 
-    - Will **NOT** be fired when the connection is closed by low-level IO error such as connection reset. 
+    - When the WebSocket is closed **normally**.
+    - Will **NOT** be fired when the connection is closed by low-level IO error such as connection reset.
     - Fired before `socket_closed`
 - `socket_closed`
-    - When the low-level socket is closed. 
+    - When the low-level socket is closed.
     - Will be fired no matter the WebSocket is closed normally or not.
 
 
 
 ### Cooperate with Tamashii Server
 
-Above example using the [wss://echo.websocket.org](wss://echo.websocket.org) to test your client. You can also use the [Tamashii](https://github.com/tamashii-io/tamashii) server to test your client. Only thing to do is to change the `host` and `port` in the configuration into the one used by your Tamashii server. 
+Above example using the [wss://echo.websocket.org](wss://echo.websocket.org) to test your client. You can also use the [Tamashii](https://github.com/tamashii-io/tamashii) server to test your client. Only thing to do is to change the `host` and `port` in the configuration into the one used by your Tamashii server.
 
 ## Development
 

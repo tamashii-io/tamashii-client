@@ -5,7 +5,11 @@ Tamashii Client is the websocket client for the  [Tamashii](https://github.com/t
 
 ## Installation
 
-Add the following code to your `Gemfile`
+Add the following code to your `Gemfile`:
+
+```ruby
+gem 'tamashii-client'
+```
 
 And then execute:
 ```ruby

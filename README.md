@@ -1,7 +1,3 @@
----
-tags: tamashii, readme
----
-
 Tamashii Client [![Gem Version](https://badge.fury.io/rb/tamashii-client.svg)](https://badge.fury.io/rb/tamashii-client) 
 ===
 

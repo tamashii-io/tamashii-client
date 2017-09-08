@@ -126,10 +126,11 @@ end
 These are events in the Tamashii Client. You can use `on` method to register callbacks for them. 
 - `socket_opened`
     - When the low-level io socket (`TCPSocket` or `OpenSSL::SSL::SSLSocket`) successfully connected to the server. 
-    - Receving this event does not imply the server supports WebSocket.
+    - Receving this event does not imply the server supports WebSocket. Client still cannot send messages at this moment
 - `open`
     - When the WebSocket handshake is finished and the connection is opened
-    - Client can start sending data to server after receiving this event.
+    - Client can start sending messages to server after receiving this event.
+    - Fired after `socket_opened`
 - `message`
     - When the client receives the WebSocket payload from server.
     - The message payload will be pass as the argument of the callback.
@@ -140,6 +141,7 @@ These are events in the Tamashii Client. You can use `on` method to register cal
 - `close`
     - When the WebSocket is closed **normally**. 
     - Will **NOT** be fired when the connection is closed by low-level IO error such as connection reset. 
+    - Fired before `socket_closed`
 - `socket_closed`
     - When the low-level socket is closed. 
     - Will be fired no matter the WebSocket is closed normally or not.

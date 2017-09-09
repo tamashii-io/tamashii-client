@@ -256,7 +256,8 @@ module Tamashii
         else
           @driver.parse(incoming)
         end
-      rescue
+      rescue => e
+        logger.error "Error when reading from server: #{e.message}"
         server_gone
       end
 

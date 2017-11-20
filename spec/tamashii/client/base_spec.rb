@@ -76,7 +76,7 @@ RSpec.describe Tamashii::Client::Base do
 
       context "use ssl" do
         before do
-          allow(Tamashii::Client::Config).to receive(:use_ssl).and_return(true)
+          allow_any_instance_of(Tamashii::Client::Config).to receive(:use_ssl).and_return(true)
         end
         it "create the socket by called OpenSSL::SSL::SSLSocket with a TCP socket" do
           expect(TCPSocket).to receive(:new).and_return(tcp_socket)
@@ -88,7 +88,7 @@ RSpec.describe Tamashii::Client::Base do
 
       context "does not use ssl" do
         before do
-          allow(Tamashii::Client::Config).to receive(:use_ssl).and_return(false)
+          allow_any_instance_of(Tamashii::Client::Config).to receive(:use_ssl).and_return(false)
         end
         it "create the socket by called OpenSSL::SSL::SSLSocket" do
           expect(TCPSocket).to receive(:new).and_return(tcp_socket)
@@ -98,14 +98,14 @@ RSpec.describe Tamashii::Client::Base do
 
       context "when timeout is reach" do
         before do
-          allow(Timeout).to receive(:timeout).and_raise(Timeout::Error) 
+          allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
         end
 
         it "returns nil" do
           expect(subject.open_socket).to be nil
         end
       end
-      
+
       context "when other error happens in the block" do
         before do
           allow(Timeout).to receive(:timeout) do
@@ -290,7 +290,7 @@ RSpec.describe Tamashii::Client::Base do
         it "terminates the loop and call nio#close, does not call select anymore" do
           expect(nio).not_to receive(:select)
           expect(nio).to receive(:close)
-          subject.run 
+          subject.run
         end
       end
 
@@ -376,11 +376,10 @@ RSpec.describe Tamashii::Client::Base do
           before do
             allow(driver).to receive(:parse).and_raise RuntimeError
           end
-          
-          it "calls server gone" do
-          expect(subject).to receive(:server_gone)
-          subject.read
 
+          it "calls server gone" do
+            expect(subject).to receive(:server_gone)
+            subject.read
           end
         end
       end
@@ -389,7 +388,7 @@ RSpec.describe Tamashii::Client::Base do
 
     describe "#server_gone" do
       let(:socket_closed_callback) { proc { "socket closed" } }
-      
+
       before do
         subject.instance_variable_set(:@driver, driver)
         subject.instance_variable_set(:@io, io)
@@ -400,11 +399,13 @@ RSpec.describe Tamashii::Client::Base do
       end
 
       it "makes opened? become false" do
+        allow(subject).to receive(:open_socket_async).and_return(nil)
         subject.server_gone
         expect(subject.opened?).to be false
       end
 
       it "call the callback 'socket_closed'" do
+        allow(subject).to receive(:open_socket_async).and_return(nil)
         subject.on(:socket_closed, &socket_closed_callback)
         expect(socket_closed_callback).to receive(:call)
         subject.server_gone
@@ -452,7 +453,7 @@ RSpec.describe Tamashii::Client::Base do
 
     describe "#wakeup" do
       it "call the nio#wakeup" do
-        expect(nio).to receive(:wakeup) 
+        expect(nio).to receive(:wakeup)
         subject.wakeup
       end
     end

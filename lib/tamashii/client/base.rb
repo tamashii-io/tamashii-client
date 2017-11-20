@@ -6,7 +6,6 @@ require 'timeout'
 require 'websocket/driver'
 
 
-require "tamashii/common"
 require "tamashii/client/config"
 
 module Tamashii
@@ -20,8 +19,8 @@ module Tamashii
       end
 
       def initialize
-        entry_point_with_slash = Config.entry_point.start_with?("/") ? Config.entry_point : "/#{Config.entry_point}"
-        @url = "#{Config.use_ssl ? "wss" : "ws"}://#{Config.host}:#{Config.port}#{entry_point_with_slash}"
+        entry_point_with_slash = Tamashii::Client.config.entry_point.start_with?("/") ? Tamashii::Client.config.entry_point : "/#{Tamashii::Client.config.entry_point}"
+        @url = "#{Tamashii::Client.config.use_ssl ? "wss" : "ws"}://#{Tamashii::Client.config.host}:#{Tamashii::Client.config.port}#{entry_point_with_slash}"
 
         @callbacks = {}
 
@@ -118,8 +117,8 @@ module Tamashii
       end
 
       def wait_for_worker_thread
-        if !@thread.join(Config.closing_timeout)
-          logger.error "Unable to stop worker thread in #{Config.closing_timeout} second! Force kill the worker thread"
+        if !@thread.join(Tamashii::Client.config.closing_timeout)
+          logger.error "Unable to stop worker thread in #{Tamashii::Client.config.closing_timeout} second! Force kill the worker thread"
           kill_worker_thread
         end
       end
@@ -131,15 +130,15 @@ module Tamashii
       end
 
       def open_socket
-        Timeout::timeout(Config.opening_timeout) do
-          if Config.use_ssl
-            OpenSSL::SSL::SSLSocket.new(TCPSocket.new(Config.host, Config.port)).connect
+        Timeout::timeout(Tamashii::Client.config.opening_timeout) do
+          if Tamashii::Client.config.use_ssl
+            OpenSSL::SSL::SSLSocket.new(TCPSocket.new(Tamashii::Client.config.host, Tamashii::Client.config.port)).connect
           else
-            TCPSocket.new(Config.host, Config.port)
+            TCPSocket.new(Tamashii::Client.config.host, Tamashii::Client.config.port)
           end
         end
       rescue Timeout::Error => e
-        logger.error "Opening timeout after #{Config.opening_timeout} seconds"
+        logger.error "Opening timeout after #{Tamashii::Client.config.opening_timeout} seconds"
         nil
       rescue => e
         nil
@@ -163,7 +162,7 @@ module Tamashii
 
       def open_socket_async
         if !closing? && !stopped?
-          @open_socket_task = Concurrent::ScheduledTask.execute(Config.opening_retry_interval, &method(:open_socket_runner))
+          @open_socket_task = Concurrent::ScheduledTask.execute(Tamashii::Client.config.opening_retry_interval, &method(:open_socket_runner))
         else
           logger.warn "Client is closing, no longer need to create socket"
         end
